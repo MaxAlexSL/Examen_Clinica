@@ -16,7 +16,9 @@
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+            @auth
+                @include('layouts.navigation')
+            @endauth
 
             <!-- Page Heading -->
             @isset($header)
@@ -29,6 +31,15 @@
 
             <!-- Page Content -->
             <main>
+                <!-- Mensaje de éxito tras guardar -->
+                @if (session('status'))
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                        <div class="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                            {{ session('status') }}
+                        </div>
+                    </div>
+                @endif
+
                 {{ $slot }}
             </main>
         </div>
