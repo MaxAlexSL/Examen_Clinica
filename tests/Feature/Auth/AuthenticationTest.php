@@ -91,4 +91,22 @@ class AuthenticationTest extends TestCase
 
         $this->get('/dashboard')->assertRedirect(route('login', absolute: false));
     }
+
+    // "Recordarme" está deshabilitado: aunque se envíe el campo, no se crea la cookie ni el token.
+    public function test_remember_me_is_ignored(): void
+    {
+        $user = User::factory()->create(['remember_token' => null]);
+
+        $this->get('/login')->assertDontSee('name="remember"', false);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => 'on',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertCookieMissing(auth()->guard('web')->getRecallerName());
+        $this->assertNull($user->fresh()->remember_token);
+    }
 }

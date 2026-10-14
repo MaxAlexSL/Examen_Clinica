@@ -45,7 +45,9 @@ class LoginRequest extends FormRequest
         // Solo autentica si las credenciales son correctas Y el usuario está activo.
         $credentials = $this->only('email', 'password') + ['is_active' => true];
 
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+        // Sin "Recordarme": en equipos compartidos de la clínica, la sesión no debe sobrevivir
+        // a su vencimiento. Se ignora cualquier campo "remember" enviado en el request.
+        if (! Auth::attempt($credentials, false)) {
             RateLimiter::hit($this->throttleKey());
 
             // Mensaje genérico: no revela si falló la contraseña o si el usuario está inactivo.
