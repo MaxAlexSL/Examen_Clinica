@@ -36,7 +36,8 @@
                 <p class="mt-1 text-xs text-gray-500">El stock solo cambia con las ventas.</p>
             @else
                 <x-input-label for="stock" value="Stock inicial" />
-                <x-text-input id="stock" name="stock" type="number" step="1" min="0" class="mt-1 block w-full" :value="old('stock', 0)" required />
+                {{-- Al hacer clic se selecciona el 0, así lo que se escribe lo reemplaza (no queda "010"). --}}
+                <x-text-input id="stock" name="stock" type="number" step="1" min="0" class="mt-1 block w-full" :value="old('stock', 0)" onfocus="this.select()" required />
                 <x-input-error :messages="$errors->get('stock')" class="mt-2" />
             @endif
         </div>

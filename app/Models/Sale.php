@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,5 +40,24 @@ class Sale extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    /**
+     * Ventas que el usuario puede ver (misma regla que SalePolicy::view, RN-12):
+     * ventas.ver_todas → todas; ventas.ver → solo las suyas; sin permiso → ninguna.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        if ($user->can('ventas.ver_todas')) {
+            return;
+        }
+
+        if ($user->can('ventas.ver')) {
+            $query->where('user_id', $user->id);
+
+            return;
+        }
+
+        $query->whereRaw('1 = 0');
     }
 }

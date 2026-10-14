@@ -99,6 +99,15 @@ class ProductManagementTest extends TestCase
         $this->assertSame($count, Product::count());
     }
 
+    public function test_initial_stock_with_leading_zeros_is_accepted(): void
+    {
+        $this->actingAs($this->admin())
+            ->post('/productos', $this->validData(['stock' => '010']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(10, $this->product('PRD-100')->stock);
+    }
+
     // RN-07: tras el alta, el stock solo cambia por ventas.
     public function test_update_ignores_stock(): void
     {

@@ -19,11 +19,17 @@ class StoreProductRequest extends FormRequest
     }
 
     // El código se guarda sin espacios y en mayúsculas.
+    // El stock "010" se normaliza a "10": la regla integer rechaza ceros a la izquierda.
     protected function prepareForValidation(): void
     {
         $this->merge([
             'code' => strtoupper(trim((string) $this->input('code'))),
         ]);
+
+        $stock = trim((string) $this->input('stock'));
+        if (preg_match('/^[0-9]+$/', $stock)) {
+            $this->merge(['stock' => ltrim($stock, '0') ?: '0']);
+        }
     }
 
     /**
