@@ -1,6 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Afiliar paciente</h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Afiliar paciente</h2>
+            <x-back-button :href="route('patients.index')" />
+        </div>
     </x-slot>
 
     <div class="py-8">

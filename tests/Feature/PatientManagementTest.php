@@ -62,7 +62,7 @@ class PatientManagementTest extends TestCase
         $this->actingAs($this->admission())
             ->post('/pacientes', $this->validData(['document_number' => '70000001'])) // ya existe (seeder)
             ->assertSessionHasErrors([
-                'document_number' => 'Ya existe un paciente registrado con ese tipo y número de documento.',
+                'document_number' => 'El documento ya existe.',
             ]);
 
         $this->assertSame($count, Patient::count());
@@ -123,6 +123,20 @@ class PatientManagementTest extends TestCase
         $this->assertSame('ACTIVO', $patient->fresh()->status);
     }
 
+    // El último afiliado aparece primero, también al buscar.
+    public function test_list_shows_latest_affiliated_first(): void
+    {
+        $this->actingAs($this->admission())->post('/pacientes', $this->validData(['last_names' => 'Quispe Nuevo']));
+        $latest = Patient::orderByDesc('id')->firstOrFail();
+        $older = Patient::where('document_number', '70000001')->firstOrFail(); // Lucía Quispe Ramos (seeder)
+
+        $this->actingAs($this->admission())->get('/pacientes')
+            ->assertSeeInOrder([$latest->affiliation_code, $older->affiliation_code]);
+
+        $this->actingAs($this->admission())->get('/pacientes?q=Quispe')
+            ->assertSeeInOrder([$latest->affiliation_code, $older->affiliation_code]);
+    }
+
     public function test_admission_can_open_show_create_and_edit_pages(): void
     {
         $patient = $this->seededPatient();
@@ -176,7 +190,7 @@ class PatientManagementTest extends TestCase
             $this->fail('Se esperaba una ValidationException.');
         } catch (ValidationException $e) {
             $this->assertSame(
-                ['Ya existe un paciente registrado con ese tipo y número de documento.'],
+                ['El documento ya existe.'],
                 $e->errors()['document_number'],
             );
         }

@@ -73,7 +73,7 @@ class StorePatientRequest extends FormRequest
     // Mismo mensaje para la validación y para el error 1062 de la BD (ver PatientService).
     public static function duplicateMessage(): string
     {
-        return 'Ya existe un paciente registrado con ese tipo y número de documento.';
+        return 'El documento ya existe.';
     }
 
     // DNI: 8 dígitos. CE y PASAPORTE: 6 a 12 caracteres alfanuméricos.

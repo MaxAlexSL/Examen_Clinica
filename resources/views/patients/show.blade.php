@@ -6,6 +6,7 @@
             </h2>
 
             <div class="flex items-center gap-4 text-sm">
+                <x-back-button :href="route('patients.index')" />
                 @include('patients.partials.status-toggle')
                 @can('pacientes.editar')
                     <a href="{{ route('patients.edit', $patient) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 rounded-md font-medium text-white hover:bg-indigo-700">
@@ -68,8 +69,6 @@
                 <h3 class="font-semibold text-gray-800">Historial de ventas</h3>
                 <p class="mt-2 text-sm text-gray-500">Disponible cuando exista el módulo de ventas.</p>
             </div>
-
-            <a href="{{ route('patients.index') }}" class="inline-block text-sm text-gray-600 hover:text-gray-900">&larr; Volver al listado</a>
         </div>
     </div>
 </x-app-layout>

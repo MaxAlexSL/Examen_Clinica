@@ -33,8 +33,8 @@ class PatientController extends Controller
                         ->orWhere('last_names', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('last_names')
-            ->orderBy('first_names')
+            // El último afiliado primero (mismo orden que affiliation_code, que se genera del id).
+            ->orderByDesc('id')
             ->paginate(10)
             ->withQueryString();
 
