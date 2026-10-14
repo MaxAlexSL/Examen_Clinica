@@ -88,7 +88,10 @@ class SaleController extends Controller
             'patients' => Patient::active()->orderBy('last_names')->orderBy('first_names')
                 ->get(['id', 'affiliation_code', 'document_type', 'document_number', 'first_names', 'last_names']),
             // Los inactivos no se listan; los de stock 0 se muestran deshabilitados.
-            'products' => Product::active()->orderBy('name')->get(['id', 'code', 'name', 'price', 'stock']),
+            // sold_quantity = unidades vendidas en total (para sugerir los más vendidos).
+            'products' => Product::active()->select(['id', 'code', 'name', 'price', 'stock'])
+                ->withSum('saleItems as sold_quantity', 'quantity')
+                ->orderBy('name')->get(),
         ]);
     }
 

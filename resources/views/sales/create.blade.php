@@ -13,6 +13,7 @@
         'code' => $p->code,
         'price' => (float) $p->price,
         'stock' => $p->stock,
+        'sold' => (int) $p->sold_quantity,
     ])->values();
 
     $oldLines = collect(old('lines', [['product_id' => '', 'quantity' => 1]]))
@@ -50,7 +51,7 @@
                 <!-- Paciente (solo ACTIVOS), con búsqueda simple -->
                 <div>
                     <x-input-label for="patient_search" value="Paciente" />
-                    <x-text-input id="patient_search" type="search" x-model="patientSearch" x-on:keydown.enter.prevent="" placeholder="Escribe código, documento o nombre para buscar" class="mt-1 block w-full sm:w-96" />
+                    <x-text-input id="patient_search" type="search" x-model="patientSearch" x-on:keydown.enter.prevent="" placeholder="Escribe documento o nombre para buscar" class="mt-1 block w-full sm:w-96" />
 
                     {{-- Valor que se envía. La lista de abajo solo sirve para elegir. --}}
                     <input type="hidden" name="patient_id" :value="patientId">
@@ -91,7 +92,8 @@
                         <button type="button" @click="patientId = ''" class="text-xs font-medium text-indigo-700 hover:text-indigo-900">Cambiar</button>
                     </div>
                     <p x-show="! selectedPatient() && ! hasSearch()" class="mt-2 text-sm text-gray-500">
-                        Escribe el código, documento o nombre del paciente para buscarlo.
+                        
+                        (<span x-text="patients.length"></span> <span x-text="patients.length === 1 ? 'paciente activo' : 'pacientes activos'"></span>).
                     </p>
                     <x-input-error :messages="$errors->get('patient_id')" class="mt-2" />
                 </div>
@@ -105,25 +107,82 @@
 
                     <div class="mt-2 space-y-3">
                         <template x-for="(line, index) in lines" :key="line.key">
-                            <div class="grid grid-cols-12 gap-3 items-center">
-                                <select :name="`lines[${index}][product_id]`" x-model="line.product_id" required
-                                        class="col-span-12 sm:col-span-6 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
-                                    <option value="">Selecciona un producto</option>
-                                    <template x-for="product in products" :key="product.id">
-                                        <option :value="product.id" :disabled="product.stock === 0"
-                                                :selected="String(product.id) === line.product_id"
-                                                x-text="`${product.code} · ${product.name} · S/ ${product.price.toFixed(2)} · stock ${product.stock}` + (product.stock === 0 ? ' (sin stock)' : '')"></option>
-                                    </template>
-                                </select>
+                            <div class="grid grid-cols-12 gap-3 items-start">
+                                <!-- Producto (solo ACTIVOS), con búsqueda como la del paciente -->
+                                <div class="col-span-12 sm:col-span-6">
+                                    {{-- Valor que se envía. La búsqueda y la lista solo sirven para elegir. --}}
+                                    <input type="hidden" :name="`lines[${index}][product_id]`" :value="line.product_id">
+
+                                    {{-- Buscador: visible mientras no haya producto elegido o se esté escribiendo. --}}
+                                    <input type="search" x-show="! selectedProduct(line) || hasProductSearch(line)" x-model="line.search"
+                                           x-on:input="onProductSearch(line)" x-on:keydown.enter.prevent="" aria-label="Buscar producto"
+                                           placeholder="Escribe código o nombre del producto"
+                                           class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
+
+                                    {{-- Resultados al escribir; sin texto y sin producto elegido, sugiere los 5 más vendidos.
+                                         La altura se ajusta a la cantidad (sin scroll). --}}
+                                    <ul x-show="listedProducts(line).length > 0" role="listbox"
+                                        :aria-label="hasProductSearch(line) ? 'Productos encontrados' : 'Productos más vendidos'"
+                                        class="mt-2 rounded-md border border-gray-200 bg-white shadow-sm divide-y divide-gray-100 overflow-hidden">
+                                        <li x-show="! hasProductSearch(line)" class="bg-gray-50 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">Más vendidos</li>
+                                        <template x-for="product in listedProducts(line)" :key="product.id">
+                                            <li>
+                                                <button type="button" @click="selectProduct(line, product)" :disabled="product.stock === 0"
+                                                        role="option" :aria-selected="isProductSelected(line, product)"
+                                                        class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors"
+                                                        :class="product.stock === 0 ? 'cursor-not-allowed opacity-60' : (isProductSelected(line, product) ? 'bg-indigo-50' : 'hover:bg-gray-50')">
+                                                    <span>
+                                                        <span class="block font-medium text-gray-900" x-text="product.name"></span>
+                                                        <span class="block text-xs text-gray-500" x-text="product.code"></span>
+                                                    </span>
+                                                    <span class="text-right text-xs whitespace-nowrap">
+                                                        <span class="block font-medium text-gray-700" x-text="'S/ ' + product.price.toFixed(2)"></span>
+                                                        <span class="block" :class="product.stock === 0 ? 'text-red-600' : 'text-gray-500'"
+                                                              x-text="product.stock === 0 ? 'Sin stock' : `Stock ${product.stock}`"></span>
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        </template>
+                                        <li x-show="matchingProducts(line).length > maxResults" class="px-3 py-2 text-xs text-gray-500"
+                                            x-text="`y ${matchingProducts(line).length - maxResults} más… sigue escribiendo para afinar la búsqueda.`"></li>
+                                    </ul>
+
+                                    {{-- Sin coincidencias --}}
+                                    <div x-show="hasProductSearch(line) && matchingProducts(line).length === 0"
+                                         class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                        No hay coincidencias. Verifique el código o el nombre del producto.
+                                    </div>
+
+                                    {{-- Producto elegido --}}
+                                    <div x-show="selectedProduct(line) && ! hasProductSearch(line)"
+                                         class="flex items-center justify-between gap-3 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm">
+                                        <span>
+                                            <span class="block font-medium text-indigo-800" x-text="selectedProduct(line)?.name"></span>
+                                            <span class="block text-xs text-indigo-700"
+                                                  x-text="selectedProduct(line) ? `${selectedProduct(line).code} · S/ ${selectedProduct(line).price.toFixed(2)} · stock ${selectedProduct(line).stock}` : ''"></span>
+                                        </span>
+                                        <button type="button" @click="line.product_id = ''" class="text-xs font-medium text-indigo-700 hover:text-indigo-900">Cambiar</button>
+                                    </div>
+
+                                    <p x-show="! selectedProduct(line) && ! hasProductSearch(line)" class="mt-1 text-xs text-gray-500">
+                                        <span x-text="products.length"></span> <span x-text="products.length === 1 ? 'producto activo' : 'productos activos'"></span>.
+                                        
+                                    </p>
+
+                                    {{-- RN-09: el servidor suma las cantidades del mismo producto. --}}
+                                    <p x-show="isRepeated(line)" class="mt-1 text-xs text-gray-500">
+                                        Este producto ya está en otra línea: las cantidades se sumarán.
+                                    </p>
+                                </div>
 
                                 <input type="number" :name="`lines[${index}][quantity]`" x-model="line.quantity" min="1" step="1" required
                                        onfocus="this.select()" aria-label="Cantidad"
                                        class="col-span-4 sm:col-span-2 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
 
-                                <span class="col-span-6 sm:col-span-3 text-right text-sm text-gray-700" x-text="'S/ ' + subtotal(line).toFixed(2)"></span>
+                                <span class="col-span-6 sm:col-span-3 pt-2 text-right text-sm text-gray-700" x-text="'S/ ' + subtotal(line).toFixed(2)"></span>
 
                                 <button type="button" @click="removeLine(index)" x-show="lines.length > 1"
-                                        class="col-span-2 sm:col-span-1 text-sm text-red-600 hover:text-red-800" aria-label="Quitar línea">Quitar</button>
+                                        class="col-span-2 sm:col-span-1 pt-2 text-sm text-red-600 hover:text-red-800" aria-label="Quitar línea">Quitar</button>
                             </div>
                         </template>
                     </div>
@@ -159,7 +218,7 @@
     </div>
 
     <script>
-        // Formulario de venta: filtro de pacientes y líneas dinámicas (solo interfaz).
+        // Formulario de venta: búsqueda de pacientes y productos, y líneas dinámicas (solo interfaz).
         // Minúsculas y sin tildes, para que "perez" encuentre "Pérez".
         function normalize(text) {
             return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -175,11 +234,11 @@
 
             return {
                 patients: patients.map(p => ({ ...p, words: words(`${p.detail} ${p.name}`) })),
-                products,
+                products: products.map(p => ({ ...p, words: words(`${p.code} ${p.name}`) })),
                 patientSearch: '',
                 patientId: oldPatientId,
                 maxResults: 8,
-                lines: oldLines.map(line => ({ ...line, key: nextKey++ })),
+                lines: oldLines.map(line => ({ ...line, search: '', key: nextKey++ })),
 
                 init() {
                     this.$watch('patientSearch', () => {
@@ -220,8 +279,63 @@
                 selectedPatient() {
                     return this.patients.find(p => this.isSelected(p)) ?? null;
                 },
+                // Búsqueda de productos: misma regla que la de pacientes, pero por línea.
+                hasProductSearch(line) {
+                    return line.search.trim() !== '';
+                },
+                matchingProducts(line) {
+                    const terms = words(line.search);
+                    if (terms.length === 0) {
+                        return [];
+                    }
+                    return this.products.filter(p => terms.every(term => p.words.some(word => word.startsWith(term))));
+                },
+                visibleProducts(line) {
+                    return this.matchingProducts(line).slice(0, this.maxResults);
+                },
+                // Los 5 con más unidades vendidas (solo los que se vendieron alguna vez).
+                topProducts() {
+                    return this.products.filter(p => p.sold > 0)
+                        .sort((a, b) => b.sold - a.sold)
+                        .slice(0, 5);
+                },
+                // Lo que muestra la lista: resultados de la búsqueda, o sugerencias si aún no se eligió nada.
+                listedProducts(line) {
+                    if (this.hasProductSearch(line)) {
+                        return this.visibleProducts(line);
+                    }
+                    return this.selectedProduct(line) ? [] : this.topProducts();
+                },
+                // Un solo resultado con stock: se selecciona solo. Si el elegido ya no coincide, se quita.
+                onProductSearch(line) {
+                    if (! this.hasProductSearch(line)) {
+                        return;
+                    }
+                    const matches = this.matchingProducts(line);
+                    if (matches.length === 1 && matches[0].stock > 0) {
+                        line.product_id = String(matches[0].id);
+                    } else if (! matches.some(p => this.isProductSelected(line, p))) {
+                        line.product_id = '';
+                    }
+                },
+                selectProduct(line, product) {
+                    if (product.stock === 0) {
+                        return;
+                    }
+                    line.product_id = String(product.id);
+                    line.search = '';
+                },
+                isProductSelected(line, product) {
+                    return String(product.id) === String(line.product_id);
+                },
+                selectedProduct(line) {
+                    return this.products.find(p => this.isProductSelected(line, p)) ?? null;
+                },
+                isRepeated(line) {
+                    return line.product_id !== '' && this.lines.some(other => other.key !== line.key && String(other.product_id) === String(line.product_id));
+                },
                 addLine() {
-                    this.lines.push({ product_id: '', quantity: 1, key: nextKey++ });
+                    this.lines.push({ product_id: '', quantity: 1, search: '', key: nextKey++ });
                 },
                 removeLine(index) {
                     this.lines.splice(index, 1);

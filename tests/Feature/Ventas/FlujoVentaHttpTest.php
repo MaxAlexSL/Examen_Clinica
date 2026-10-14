@@ -17,6 +17,23 @@ class FlujoVentaHttpTest extends VentaTestCase
             ->assertDontSee('Alcohol en gel'); // producto INACTIVO
     }
 
+    // Para sugerir los más vendidos, cada producto lleva las unidades vendidas en total.
+    public function test_el_formulario_incluye_las_unidades_vendidas_de_cada_producto(): void
+    {
+        $vendedor = $this->vendedor();
+        $this->servicio()->create($vendedor, $this->paciente()->id, [
+            $this->linea('PRD-001', 3),
+            $this->linea('PRD-002', 1),
+        ], 'EFECTIVO');
+
+        $products = $this->actingAs($vendedor)->get('/ventas/nueva')
+            ->assertOk()
+            ->viewData('products');
+
+        $this->assertSame(3, (int) $products->firstWhere('code', 'PRD-001')->sold_quantity);
+        $this->assertSame(1, (int) $products->firstWhere('code', 'PRD-002')->sold_quantity);
+    }
+
     public function test_revisar_muestra_el_total_y_no_guarda_nada(): void
     {
         $this->actingAs($this->vendedor())
