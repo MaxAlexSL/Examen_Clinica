@@ -26,6 +26,7 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        // Nuevo id de sesión tras el login (evita fijación de sesión).
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
@@ -38,10 +39,11 @@ class AuthenticatedSessionController extends Controller
     {
         Auth::guard('web')->logout();
 
+        // Invalida la sesión actual y genera un nuevo token CSRF.
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('login');
     }
 }

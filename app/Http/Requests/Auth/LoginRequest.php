@@ -42,9 +42,13 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Solo autentica si las credenciales son correctas Y el usuario está activo.
+        $credentials = $this->only('email', 'password') + ['is_active' => true];
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            // Mensaje genérico: no revela si falló la contraseña o si el usuario está inactivo.
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);

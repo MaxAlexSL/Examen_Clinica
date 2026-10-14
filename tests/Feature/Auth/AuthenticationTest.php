@@ -34,11 +34,42 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
 
+        $this->assertGuest();
+        $response->assertSessionHasErrors(['email' => __('auth.failed')]);
+    }
+
+    public function test_inactive_users_can_not_authenticate(): void
+    {
+        $user = User::factory()->create(['is_active' => false]);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password', // contraseña correcta
+        ]);
+
+        $this->assertGuest();
+        // Mismo mensaje genérico que con contraseña incorrecta.
+        $response->assertSessionHasErrors(['email' => __('auth.failed')]);
+    }
+
+    public function test_active_session_is_terminated_when_user_is_deactivated(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/dashboard')->assertOk();
+
+        // El administrador desactiva al usuario mientras tiene la sesión abierta.
+        $user->update(['is_active' => false]);
+
+        $response = $this->get('/dashboard');
+
+        $response->assertRedirect(route('login', absolute: false));
+        $response->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
@@ -49,6 +80,15 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login', absolute: false));
+    }
+
+    public function test_dashboard_redirects_to_login_after_logout(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/logout');
+
+        $this->get('/dashboard')->assertRedirect(route('login', absolute: false));
     }
 }
