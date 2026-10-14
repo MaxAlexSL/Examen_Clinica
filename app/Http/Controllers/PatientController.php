@@ -41,9 +41,15 @@ class PatientController extends Controller
         return view('patients.index', compact('patients', 'search'));
     }
 
-    public function show(Patient $patient): View
+    public function show(Request $request, Patient $patient): View
     {
-        return view('patients.show', compact('patient'));
+        // Historial de ventas solo con permiso de ventas, filtrado con la misma regla que el listado (RN-12).
+        $user = $request->user();
+        $sales = $user->canAny(['ventas.ver', 'ventas.ver_todas'])
+            ? $patient->sales()->visibleTo($user)->with('user')->orderByDesc('id')->get()
+            : null;
+
+        return view('patients.show', compact('patient', 'sales'));
     }
 
     public function create(): View

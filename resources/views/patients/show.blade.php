@@ -64,11 +64,43 @@
                 </dl>
             </div>
 
-            <!-- Historial de ventas (se completa con el módulo de ventas) -->
-            <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <h3 class="font-semibold text-gray-800">Historial de ventas</h3>
-                <p class="mt-2 text-sm text-gray-500">Disponible cuando exista el módulo de ventas.</p>
-            </div>
+            {{-- Historial de ventas: solo con ventas.ver / ventas.ver_todas; $sales ya viene filtrado con visibleTo --}}
+            @if ($sales !== null)
+                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                    <h3 class="font-semibold text-gray-800">Historial de ventas</h3>
+
+                    @if ($sales->isEmpty())
+                        <p class="mt-2 text-sm text-gray-500">El paciente no tiene ventas registradas.</p>
+                    @else
+                        <div class="mt-3 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    <tr>
+                                        <th class="px-4 py-2">Código</th>
+                                        <th class="px-4 py-2">Fecha y hora</th>
+                                        <th class="px-4 py-2">Vendedor</th>
+                                        <th class="px-4 py-2">Medio de pago</th>
+                                        <th class="px-4 py-2 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach ($sales as $sale)
+                                        <tr>
+                                            <td class="px-4 py-2 font-mono">
+                                                <a href="{{ route('sales.show', $sale) }}" class="text-indigo-600 hover:text-indigo-800">{{ $sale->code }}</a>
+                                            </td>
+                                            <td class="px-4 py-2 text-gray-600 whitespace-nowrap">{{ $sale->sold_at->format('d/m/Y H:i') }}</td>
+                                            <td class="px-4 py-2 text-gray-600">{{ $sale->user->name }}</td>
+                                            <td class="px-4 py-2 text-gray-600">{{ $sale->payment_method }}</td>
+                                            <td class="px-4 py-2 text-right whitespace-nowrap">S/ {{ $sale->total }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

@@ -40,6 +40,15 @@
                     </div>
                 @endif
 
+                <!-- Mensaje de error de una acción (ej. venta ya procesada) -->
+                @if (session('error'))
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                        <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+                            {{ session('error') }}
+                        </div>
+                    </div>
+                @endif
+
                 {{ $slot }}
             </main>
         </div>

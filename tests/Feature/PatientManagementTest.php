@@ -144,7 +144,7 @@ class PatientManagementTest extends TestCase
         $this->actingAs($this->admission())->get("/pacientes/{$patient->id}")
             ->assertOk()
             ->assertSee($patient->affiliation_code)
-            ->assertSee('Disponible cuando exista el módulo de ventas');
+            ->assertDontSee('Historial de ventas'); // Admisión no tiene permisos de ventas
         $this->actingAs($this->admission())->get('/pacientes/crear')->assertOk();
         $this->actingAs($this->admission())->get("/pacientes/{$patient->id}/editar")->assertOk();
     }

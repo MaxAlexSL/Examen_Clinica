@@ -79,6 +79,35 @@ abstract class VentaTestCase extends TestCase
         $this->fail('Se esperaba que la venta fuera rechazada.');
     }
 
+    /**
+     * Datos del formulario de la venta de ejemplo (caso 05): Botella x3 + Kit x1.
+     *
+     * @return array<string, mixed>
+     */
+    protected function datosVentaEjemplo(): array
+    {
+        return [
+            'patient_id' => $this->paciente()->id,
+            'payment_method' => 'EFECTIVO',
+            'lines' => [
+                $this->linea('PRD-001', 3),
+                $this->linea('PRD-002', 1),
+            ],
+        ];
+    }
+
+    /**
+     * Paso "Revisar" por HTTP; devuelve el token de un solo uso guardado en sesión.
+     *
+     * @param  array<string, mixed>  $datos
+     */
+    protected function revisar(User $usuario, array $datos): string
+    {
+        $this->actingAs($usuario)->post('/ventas/revisar', $datos)->assertOk();
+
+        return session('sale_token');
+    }
+
     protected function assertNoSeGuardoNada(): void
     {
         $this->assertSame(0, Sale::count(), 'No debe existir ninguna venta.');

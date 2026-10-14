@@ -1,5 +1,5 @@
 @php
-    // Opciones del menú: ruta, texto, permiso requerido y rutas que la marcan como activa.
+    // Opciones del menú: ruta, texto, permiso(s) requerido(s) (basta uno) y rutas que la marcan como activa.
     // Cada opción aparece solo si la ruta ya existe y el usuario tiene el permiso.
     // Ocultar el enlace es solo estética: el servidor valida el permiso en cada ruta.
     $menu = [
@@ -7,8 +7,8 @@
         ['route' => 'roles.index', 'label' => 'Roles', 'permission' => 'roles.ver', 'active' => 'roles.*'],
         ['route' => 'patients.index', 'label' => 'Pacientes', 'permission' => 'pacientes.ver', 'active' => 'patients.*'],
         ['route' => 'products.index', 'label' => 'Productos', 'permission' => 'productos.ver', 'active' => 'products.*'],
-        ['route' => 'sales.index', 'label' => 'Ventas', 'permission' => 'ventas.ver', 'active' => ['sales.index', 'sales.show']],
-        ['route' => 'sales.create', 'label' => 'Nueva venta', 'permission' => 'ventas.crear', 'active' => 'sales.create'],
+        ['route' => 'sales.index', 'label' => 'Ventas', 'permission' => ['ventas.ver', 'ventas.ver_todas'], 'active' => ['sales.index', 'sales.show']],
+        ['route' => 'sales.create', 'label' => 'Nueva venta', 'permission' => 'ventas.crear', 'active' => ['sales.create', 'sales.review']],
     ];
 
     $user = Auth::user();
@@ -35,11 +35,11 @@
 
                     @foreach ($menu as $item)
                         @if (Route::has($item['route']))
-                            @can($item['permission'])
+                            @canany((array) $item['permission'])
                                 <x-nav-link :href="route($item['route'])" :active="request()->routeIs($item['active'])">
                                     {{ $item['label'] }}
                                 </x-nav-link>
-                            @endcan
+                            @endcanany
                         @endif
                     @endforeach
                 </div>
@@ -81,11 +81,11 @@
 
             @foreach ($menu as $item)
                 @if (Route::has($item['route']))
-                    @can($item['permission'])
+                    @canany((array) $item['permission'])
                         <x-responsive-nav-link :href="route($item['route'])" :active="request()->routeIs($item['active'])">
                             {{ $item['label'] }}
                         </x-responsive-nav-link>
-                    @endcan
+                    @endcanany
                 @endif
             @endforeach
         </div>

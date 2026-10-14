@@ -3,6 +3,7 @@
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -78,6 +79,19 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:productos.desactivar')->name('products.deactivate');
     Route::patch('/productos/{product}/activar', [ProductController::class, 'activate'])
         ->middleware('permission:productos.desactivar')->name('products.activate');
+
+    // Ventas (RN-11: sin editar ni eliminar). /ventas/nueva va antes de /ventas/{sale}.
+    Route::get('/ventas', [SaleController::class, 'index'])
+        ->middleware('permission:ventas.ver|ventas.ver_todas')->name('sales.index');
+    Route::get('/ventas/nueva', [SaleController::class, 'create'])
+        ->middleware('permission:ventas.crear')->name('sales.create');
+    Route::post('/ventas/revisar', [SaleController::class, 'review'])
+        ->middleware('permission:ventas.crear')->name('sales.review');
+    Route::post('/ventas', [SaleController::class, 'store'])
+        ->middleware('permission:ventas.crear')->name('sales.store');
+    // Detalle: autorizado con SalePolicy::view (propia con ventas.ver, o ventas.ver_todas).
+    Route::get('/ventas/{sale}', [SaleController::class, 'show'])
+        ->whereNumber('sale')->name('sales.show');
 });
 
 require __DIR__.'/auth.php';
