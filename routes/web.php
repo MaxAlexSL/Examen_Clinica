@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PatientController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +41,24 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:roles.editar')->name('roles.edit');
     Route::put('/roles/{role}', [RoleController::class, 'update'])
         ->middleware('permission:roles.editar')->name('roles.update');
+
+    // Pacientes (sin eliminación: se desactivan)
+    Route::get('/pacientes', [PatientController::class, 'index'])
+        ->middleware('permission:pacientes.ver')->name('patients.index');
+    Route::get('/pacientes/crear', [PatientController::class, 'create'])
+        ->middleware('permission:pacientes.crear')->name('patients.create');
+    Route::post('/pacientes', [PatientController::class, 'store'])
+        ->middleware('permission:pacientes.crear')->name('patients.store');
+    Route::get('/pacientes/{patient}', [PatientController::class, 'show'])
+        ->middleware('permission:pacientes.ver')->name('patients.show');
+    Route::get('/pacientes/{patient}/editar', [PatientController::class, 'edit'])
+        ->middleware('permission:pacientes.editar')->name('patients.edit');
+    Route::put('/pacientes/{patient}', [PatientController::class, 'update'])
+        ->middleware('permission:pacientes.editar')->name('patients.update');
+    Route::patch('/pacientes/{patient}/desactivar', [PatientController::class, 'deactivate'])
+        ->middleware('permission:pacientes.desactivar')->name('patients.deactivate');
+    Route::patch('/pacientes/{patient}/activar', [PatientController::class, 'activate'])
+        ->middleware('permission:pacientes.desactivar')->name('patients.activate');
 });
 
 require __DIR__.'/auth.php';
