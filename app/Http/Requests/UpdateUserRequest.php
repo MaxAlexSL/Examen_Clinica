@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\AdminGuard;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -30,24 +31,37 @@ class UpdateUserRequest extends FormRequest
     }
 
     /**
-     * Reglas adicionales: un usuario no puede desactivarse ni cambiar su propio rol.
+     * Reglas adicionales: un usuario no puede desactivarse ni cambiar su propio rol,
+     * y el cambio no puede dejar al sistema sin ningún administrador activo (AdminGuard).
      */
     public function after(): array
     {
         return [
             function (Validator $validator) {
-                $user = $this->route('user');
-
-                if (! $this->user()->is($user)) {
+                if ($validator->errors()->isNotEmpty()) {
                     return;
                 }
 
-                if (! $this->boolean('is_active')) {
-                    $validator->errors()->add('is_active', 'No puedes desactivar tu propio usuario.');
+                $user = $this->route('user');
+
+                if ($this->user()->is($user)) {
+                    if (! $this->boolean('is_active')) {
+                        $validator->errors()->add('is_active', 'No puedes desactivar tu propio usuario.');
+                    }
+
+                    if ($this->input('role') !== $user->getRoleNames()->first()) {
+                        $validator->errors()->add('role', 'No puedes cambiar tu propio rol.');
+                    }
+
+                    if ($validator->errors()->isNotEmpty()) {
+                        return;
+                    }
                 }
 
-                if ($this->input('role') !== $user->getRoleNames()->first()) {
-                    $validator->errors()->add('role', 'No puedes cambiar tu propio rol.');
+                $isActive = $this->boolean('is_active');
+                if (! app(AdminGuard::class)->allowsUserChange($user, (string) $this->input('role'), $isActive)) {
+                    // El error se muestra junto al campo que provoca el problema.
+                    $validator->errors()->add($isActive ? 'role' : 'is_active', AdminGuard::MESSAGE);
                 }
             },
         ];

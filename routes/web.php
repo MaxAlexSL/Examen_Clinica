@@ -16,10 +16,11 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware('auth')->name('dashboard');
+})->middleware(['auth', 'prevent-back-history'])->name('dashboard');
 
 // Cada ruta exige su permiso (nunca un nombre de rol). Sin permiso → 403.
-Route::middleware('auth')->group(function () {
+// prevent-back-history: las páginas autenticadas no se guardan en la caché del navegador.
+Route::middleware(['auth', 'prevent-back-history'])->group(function () {
     // Usuarios (sin eliminación: se desactivan)
     Route::get('/usuarios', [UserController::class, 'index'])
         ->middleware('permission:usuarios.ver')->name('users.index');

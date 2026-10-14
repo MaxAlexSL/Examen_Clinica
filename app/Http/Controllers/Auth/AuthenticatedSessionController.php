@@ -29,7 +29,11 @@ class AuthenticatedSessionController extends Controller
         // Nuevo id de sesión tras el login (evita fijación de sesión).
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Siempre al dashboard: no se usa redirect()->intended(), que llevaría a la última
+        // página pedida antes del login (por ejemplo, la que dejó abierta el usuario anterior).
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('dashboard');
     }
 
     /**
@@ -44,6 +48,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        // Pide al navegador borrar su caché de este sitio: "Atrás" no mostrará páginas del usuario anterior.
+        return redirect()->route('login')->header('Clear-Site-Data', '"cache"');
     }
 }

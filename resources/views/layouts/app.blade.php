@@ -13,6 +13,14 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <!-- Si el navegador restaura la página desde su caché al pulsar "Atrás", se recarga
+             para que el servidor verifique la sesión (tras cerrar sesión, redirige al login). -->
+        <script>
+            window.addEventListener('pageshow', e => {
+                if (e.persisted) location.reload();
+            });
+        </script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
